@@ -82,10 +82,10 @@ def main():
     subs = ['vancouver']
     
     reddit_submissions.where(reddit_submissions['subreddit'].isin(subs)) \
-        .where((functions.col('year') >= 2015) & (functions.col('year') <= 2019)) \
+        .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
         .write.json(output + '/submissions', mode='overwrite', compression='gzip')
     reddit_comments.where(reddit_comments['subreddit'].isin(subs)) \
-        .where((functions.col('year') >= 2015) & (functions.col('year') <= 2019)) \
+        .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
         .write.json(output + '/comments', mode='overwrite', compression='gzip')
     
 
