@@ -5,7 +5,7 @@ spark = SparkSession.builder.appName('reddit extracter').config("spark.ui.showCo
 
 reddit_submissions_path = '/courses/datasets/reddit_submissions_repartitioned/'
 reddit_comments_path = '/courses/datasets/reddit_comments_repartitioned/'
-output = 'reddit-subset'
+output = 'reddit-subset-2021-2023'
 
 comments_schema = types.StructType([
     types.StructField('archived', types.BooleanType()),
