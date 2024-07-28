@@ -5,7 +5,7 @@ spark = SparkSession.builder.appName('reddit extracter').config("spark.ui.showCo
 
 reddit_submissions_path = '/courses/datasets/reddit_submissions_repartitioned/'
 reddit_comments_path = '/courses/datasets/reddit_comments_repartitioned/'
-output = 'reddit-subset'
+output = 'reddit-subset-2021-2023'
 
 comments_schema = types.StructType([
     types.StructField('archived', types.BooleanType()),
@@ -82,10 +82,10 @@ def main():
     subs = ['vancouver']
     
     reddit_submissions.where(reddit_submissions['subreddit'].isin(subs)) \
-        .where((functions.col('year') >= 2014) & (functions.col('year') <= 2023)) \
+        .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
         .write.json(output + '/submissions', mode='overwrite', compression='gzip')
     reddit_comments.where(reddit_comments['subreddit'].isin(subs)) \
-        .where((functions.col('year') >= 2014) & (functions.col('year') <= 2023)) \
+        .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
         .write.json(output + '/comments', mode='overwrite', compression='gzip')
     
 
