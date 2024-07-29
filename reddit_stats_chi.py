@@ -93,22 +93,11 @@ def main(input_submissions, input_comments, output):
     summer_comments = reddit_comments_data.where(functions.col('month').isin(summer_months)).select('score').rdd.flatMap(lambda x: x).collect()
     winter_comments = reddit_comments_data.where(functions.col('month').isin(winter_months)).select('score').rdd.flatMap(lambda x: x).collect()
 
-    # Print number of data points for debugging
-    print(f"Number of summer submissions: {len(summer_submissions)}")
-    print(f"Number of winter submissions: {len(winter_submissions)}")
-    print(f"Number of summer comments: {len(summer_comments)}")
-    print(f"Number of winter comments: {len(winter_comments)}")
-
     # Mann-Whitney U Test for submissions
     stat_subs, p_value_subs = mannwhitneyu(summer_submissions, winter_submissions, alternative='less')
 
     # Mann-Whitney U Test for comments
     stat_comms, p_value_comms = mannwhitneyu(summer_comments, winter_comments, alternative='less')
-
-    print("Summer Submissions Scores:", summer_submissions[:10])  # Print first 10 scores for brevity
-    print("Winter Submissions Scores:", winter_submissions[:10])  # Print first 10 scores for brevity
-    print("Summer Comments Scores:", summer_comments[:10])  # Print first 10 scores for brevity
-    print("Winter Comments Scores:", winter_comments[:10])  # Print first 10 scores for brevity
 
     print(f'Mann-Whitney U test statistic subs: {stat_subs}')
     print(f'P-value subs: {p_value_subs}')
@@ -116,38 +105,78 @@ def main(input_submissions, input_comments, output):
     print(f'P-value comments: {p_value_comms}')
 
     # Chi-squared Test
-    summer_comments_df = reddit_submissions_data.where(functions.col('month').isin(summer_months)).withColumn('season', functions.lit('summer'))
-    winter_comments_df = reddit_submissions_data.where(functions.col('month').isin(winter_months)).withColumn('season', functions.lit('winter'))
 
-    all_comments_df = summer_comments_df.union(winter_comments_df)
+    summer_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(summer_months))
+    winter_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(winter_months))
 
-    # Count comments by season and subreddit
-    contingency_table_df = all_comments_df.groupBy('season', 'subreddit').count().toPandas()
+    summer_counts = summer_submissions_filter.groupBy('subreddit').agg(functions.sum('num_comments').alias('count')).collect()
+    winter_counts = winter_submissions_filter.groupBy('subreddit').agg(functions.sum('num_comments').alias('count')).collect()
+
+    summer_dict = {row['subreddit']: row['count'] for row in summer_counts}
+    winter_dict = {row['subreddit']: row['count'] for row in winter_counts}
+
+    all_subreddits = set(summer_dict.keys()).union(set(winter_dict.keys()))
+
+    contingency = [
+        [summer_dict.get(subreddit, 0) for subreddit in all_subreddits],
+        [winter_dict.get(subreddit, 0) for subreddit in all_subreddits]
+    ]
+
+    chi2 = chi2_contingency(contingency)
     
-    print("Contingency Table DataFrame:")
-    print(contingency_table_df)
+    print(f'P-value submissions: ', chi2.pvalue)
+
+    '''
+    summer_counts = summer_submissions_filter.groupBy('subreddit').agg(functions.count('comments').alias('count')).collect()
+    winter_counts = winter_submissions_filter.groupBy('subreddit').agg(functions.count('comments').alias('count')).collect()
+
+    # Convert to dictionaries for easy manipulation
+    summer_dict = {row['subreddit']: row['count'] for row in summer_counts}
+    winter_dict = {row['subreddit']: row['count'] for row in winter_counts}
+
+    # Get a set of all unique subreddits
+    all_subreddits = set(summer_dict.keys()).union(set(winter_dict.keys()))
+
+    # Construct the contingency table
+    contingency = [
+        [summer_dict.get(subreddit, 0) for subreddit in all_subreddits],
+        [winter_dict.get(subreddit, 0) for subreddit in all_subreddits]
+    ]
+
+    print("Contingency Table:")
+    for row in contingency:
+        print(row)
+    
+    chi2, p_value, dof, expected = chi2_contingency(contingency)
+    
+    print(f'Chi-squared test statistic: {chi2}')
+    print(f'P-value: {p_value}')
+    print(f'Degrees of freedom: {dof}')
+    print('Expected frequencies:')
+    for row in expected:
+        print(row)
+
+    '''
+
+    #contingency = [[],[]]
+    
+    #summer_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(summer_months))
+    #summer_submissions_comments_count = summer_submissions_filter.groupby('subreddit').agg(functions.count('comments')).rdd.flatMap(lambda x: x).collect()[0]
+    #contingency[0].append(summer_submissions_comments_count)
+
+    #winter_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(winter_months))
+    #winter_submissions_comments_count =  winter_submissions_filter.groupby('subreddit').agg(functions.count('comments')).rdd.flatMap(lambda x: x).collect()[0]
+    #contingency[1].append(winter_submissions_comments_count)
+    
+    #chi2_subs = chi2_contingency(contingency)
+    #print(contingency, chi2_subs)
+    
+
+    #print(f'Chi-squared test statistic subs: {chi2_subs}')
+    #print(f'P-value subs: ', chi2_subs.pvalue)
+
 
     
-    contingency_table = contingency_table_df.pivot(index='season', columns='subreddit', values='count').fillna(0)
-    print("Pivoted Contingency Table:")
-    print(contingency_table)
-        
-    # Perform Chi-squared test
-    chi2_stat, p_value_chi2, _, _ = chi2_contingency(contingency_table)
-    print(f'Chi-squared test statistic comments: {chi2_stat}')
-    print(f'Chi-squared p-value comments: {p_value_chi2}')
-    
-
-    results = {
-        'mannwhitneyu_statistic subs': stat_subs,
-        'mannwhitneyu_p_value subs': p_value_subs,
-        'mannwhitneyu_statistic comments': stat_comms,
-        'mannwhitneyu_p_value comments': p_value_comms,
-        'chi2_statistic comments': chi2_stat,
-        'chi2_p_value comments': p_value_chi2 
-    }
-
-
 if __name__ == "__main__":
     input_submissions = sys.argv[1]
     input_comments = sys.argv[2]
@@ -159,6 +188,4 @@ if __name__ == "__main__":
 
 
 
-
-
-#spark-submit test.py reddit-subset-2021/submissions reddit-subset-2021/comments stats_outputs
+#spark-submit reddit_stats_chi.py reddit-subset-2021/submissions reddit-subset-2021/comments stats_outputs
