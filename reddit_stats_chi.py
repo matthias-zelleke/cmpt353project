@@ -23,6 +23,7 @@ comments_schema = types.StructType([
     types.StructField('retrieved_on', types.LongType()),
     types.StructField('score', types.LongType()),
     types.StructField('score_hidden', types.BooleanType()),
+    types.StructField('sentiment', types.LongType()),
     types.StructField('subreddit', types.StringType()),
     types.StructField('subreddit_id', types.StringType()),
     types.StructField('ups', types.LongType()),
@@ -61,6 +62,7 @@ submissions_schema = types.StructType([
     types.StructField('score', types.LongType()),
     types.StructField('secure_media', types.StringType()),
     types.StructField('selftext', types.StringType()),
+    types.StructField('sentiment', types.LongType()),
     types.StructField('stickied', types.BooleanType()),
     types.StructField('subreddit', types.StringType()),
     types.StructField('subreddit_id', types.StringType()),
@@ -109,18 +111,29 @@ def main(input_submissions, input_comments, output):
     summer_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(summer_months))
     winter_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(winter_months))
 
-    summer_counts = summer_submissions_filter.groupBy('subreddit').agg(functions.sum('num_comments').alias('count')).collect()
-    winter_counts = winter_submissions_filter.groupBy('subreddit').agg(functions.sum('num_comments').alias('count')).collect()
+    summer_submissions_neg = summer_submissions_filter.where(functions.col('sentiment') == 0)
+    summer_submissions_pos = summer_submissions_filter.where(functions.col('sentiment') == 4)
+    
+    winter_submissions_neg = winter_submissions_filter.where(functions.col('sentiment') == 0)
+    winter_submissions_pos = winter_submissions_filter.where(functions.col('sentiment') == 4)
+    
+    summer_neg_counts = summer_submissions_neg.count()
+    summer_pos_counts = summer_submissions_pos.count()
+    
+    winter_neg_counts = winter_submissions_neg.count()
+    winter_pos_counts = winter_submissions_pos.count()
+    
+    print(summer_pos_counts, summer_neg_counts, winter_pos_counts, winter_neg_counts)
+    contingency = [[summer_pos_counts, summer_neg_counts],
+                   [winter_pos_counts, winter_neg_counts]]
+    
+    #summer_counts = summer_submissions_filter.groupBy('subreddit').agg(functions.sum('num_comments').alias('count')).collect()
+    #winter_counts = winter_submissions_filter.groupBy('subreddit').agg(functions.sum('num_comments').alias('count')).collect()
 
-    summer_dict = {row['subreddit']: row['count'] for row in summer_counts}
-    winter_dict = {row['subreddit']: row['count'] for row in winter_counts}
+    #summer_dict = {row['subreddit']: row['count'] for row in summer_counts}
+    #winter_dict = {row['subreddit']: row['count'] for row in winter_counts}
 
-    all_subreddits = set(summer_dict.keys()).union(set(winter_dict.keys()))
-
-    contingency = [
-        [summer_dict.get(subreddit, 0) for subreddit in all_subreddits],
-        [winter_dict.get(subreddit, 0) for subreddit in all_subreddits]
-    ]
+    #all_subreddits = set(summer_dict.keys()).union(set(winter_dict.keys()))
 
     chi2 = chi2_contingency(contingency)
     
