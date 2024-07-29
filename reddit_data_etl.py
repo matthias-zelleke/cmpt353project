@@ -83,9 +83,11 @@ def main():
     
     reddit_submissions.where(reddit_submissions['subreddit'].isin(subs)) \
         .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
+        .sample(fraction=0.1) \
         .write.json(output + '/submissions', mode='overwrite', compression='gzip')
     reddit_comments.where(reddit_comments['subreddit'].isin(subs)) \
         .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
+        .sample(fraction=0.1) \
         .write.json(output + '/comments', mode='overwrite', compression='gzip')
     
 
