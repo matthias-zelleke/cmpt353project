@@ -92,3 +92,7 @@ def main():
     
 
 main()
+
+
+#scp -r cluster.cs.sfu.ca:/home/eka85/reddit-subset ~/Documents/project/cmpt353project/
+
