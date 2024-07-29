@@ -81,9 +81,12 @@ def main(input_submissions, input_comments, output):
     spark.sparkContext.setLogLevel('WARN')
 
     # Read and filter data
-    reddit_submissions_data = spark.read.json(input_submissions, schema=submissions_schema)
-    reddit_comments_data = spark.read.json(input_comments, schema=comments_schema)
+    summer_submissions = spark.read.json(input_submissions + '-summer', schema=submissions_schema)
+    winter_submissions = spark.read.json(input_submissions + '-winter', schema=submissions_schema)
 
+    summer_comments = spark.read.json(input_comments + '-summer', schema=comments_schema)
+    winter_comments = spark.read.json(input_comments + '-winter', schema=comments_schema)
+    
     summer_months = [6, 7, 8, 9]
     winter_months = [1, 2, 3, 4, 5, 10, 11, 12]
 
