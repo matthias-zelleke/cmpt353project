@@ -5,11 +5,9 @@ import pandas as pd
 from datasets import load_dataset
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import GradientBoostingClassifier, VotingClassifier
+from sklearn.svm import SVC
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import train_test_split
-
-from sklearn.neighbors import KNeighborsClassifier
 
 
 comments_schema = types.StructType([
@@ -131,26 +129,21 @@ def main(input_submissions, input_comments, output):
     
     X_train, X_valid, y_train, y_valid = train_test_split(X, y)
     
-    model_knn = make_pipeline(
+    model_svc = make_pipeline(
         TfidfVectorizer(),
-        VotingClassifier([
-            ('gb', GradientBoostingClassifier(n_estimators=100, max_depth=5,
-                                       min_samples_leaf=0.001)),
-            ('knn', KNeighborsClassifier(n_neighbors=20))
-            
-        ])
+        SVC(C=0.1, kernel='linear')
     )
     
-    model_knn.fit(X_train, y_train)
+    model_svc.fit(X_train, y_train)
     
-    print(model_knn.score(X_train, y_train))
-    print(model_knn.score(X_valid, y_valid))
+    print(model_svc.score(X_train, y_train))
+    print(model_svc.score(X_valid, y_valid))
     
     
     #reddit_submissions_summer.select('selftext').show()
     reddit_submissions_summer_text = reddit_submissions_summer.select('selftext').toPandas()
     
-    submissions_summer_predictions = model_knn.predict(reddit_submissions_summer_text['selftext'])
+    submissions_summer_predictions = model_svc.predict(reddit_submissions_summer_text['selftext'])
     submissions_summer_predictions = pd.DataFrame(submissions_summer_predictions, columns=['sentiment'])
     submissions_summer_predictions = spark.createDataFrame(submissions_summer_predictions)
     submissions_summer_predictions = submissions_summer_predictions.withColumn('id', functions.monotonically_increasing_id())
@@ -162,7 +155,7 @@ def main(input_submissions, input_comments, output):
     #reddit_comments_summer.select('body').show()
     reddit_comments_summer_text = reddit_comments_summer.select('body').toPandas()
     
-    comments_summer_predictions = model_knn.predict(reddit_comments_summer_text['body'])
+    comments_summer_predictions = model_svc.predict(reddit_comments_summer_text['body'])
     comments_summer_predictions = pd.DataFrame(comments_summer_predictions, columns=['sentiment'])
     comments_summer_predictions = spark.createDataFrame(comments_summer_predictions)
     comments_summer_predictions = comments_summer_predictions.withColumn('id', functions.monotonically_increasing_id())
@@ -174,7 +167,7 @@ def main(input_submissions, input_comments, output):
     
     reddit_submissions_fall_text = reddit_submissions_fall.select('selftext').toPandas()
 
-    submissions_fall_predictions = model_knn.predict(reddit_submissions_fall_text['selftext'])
+    submissions_fall_predictions = model_svc.predict(reddit_submissions_fall_text['selftext'])
     submissions_fall_predictions = pd.DataFrame(submissions_fall_predictions, columns=['sentiment'])
     submissions_fall_predictions = spark.createDataFrame(submissions_fall_predictions)
     submissions_fall_predictions = submissions_fall_predictions.withColumn('id', functions.monotonically_increasing_id())
@@ -185,7 +178,7 @@ def main(input_submissions, input_comments, output):
     
     reddit_comments_fall_text = reddit_comments_fall.select('body').toPandas()
     
-    comments_fall_predictions = model_knn.predict(reddit_comments_fall_text['body'])
+    comments_fall_predictions = model_svc.predict(reddit_comments_fall_text['body'])
     comments_fall_predictions = pd.DataFrame(comments_fall_predictions, columns=['sentiment'])
     comments_fall_predictions = spark.createDataFrame(comments_fall_predictions)
     comments_fall_predictions = comments_fall_predictions.withColumn('id', functions.monotonically_increasing_id())
@@ -197,7 +190,7 @@ def main(input_submissions, input_comments, output):
     
     reddit_submissions_winter_text = reddit_submissions_winter.select('selftext').toPandas()
     
-    submissions_winter_predictions = model_knn.predict(reddit_submissions_winter_text['selftext'])
+    submissions_winter_predictions = model_svc.predict(reddit_submissions_winter_text['selftext'])
     submissions_winter_predictions = pd.DataFrame(submissions_winter_predictions, columns=['sentiment'])
     submissions_winter_predictions = spark.createDataFrame(submissions_winter_predictions)
     submissions_winter_predictions = submissions_winter_predictions.withColumn('id', functions.monotonically_increasing_id())
@@ -208,7 +201,7 @@ def main(input_submissions, input_comments, output):
     
     reddit_comments_winter_text = reddit_comments_winter.select('body').toPandas()
     
-    comments_winter_predictions = model_knn.predict(reddit_comments_winter_text['body'])
+    comments_winter_predictions = model_svc.predict(reddit_comments_winter_text['body'])
     comments_winter_predictions = pd.DataFrame(comments_winter_predictions, columns=['sentiment'])
     comments_winter_predictions = spark.createDataFrame(comments_winter_predictions)
     comments_winter_predictions = comments_winter_predictions.withColumn('id', functions.monotonically_increasing_id())
@@ -220,7 +213,7 @@ def main(input_submissions, input_comments, output):
     
     reddit_submissions_spring_text = reddit_submissions_spring.select('selftext').toPandas()
 
-    submissions_spring_predictions = model_knn.predict(reddit_submissions_spring_text['selftext'])
+    submissions_spring_predictions = model_svc.predict(reddit_submissions_spring_text['selftext'])
     submissions_spring_predictions = pd.DataFrame(submissions_spring_predictions, columns=['sentiment'])
     submissions_spring_predictions = spark.createDataFrame(submissions_spring_predictions)
     submissions_spring_predictions = submissions_spring_predictions.withColumn('id', functions.monotonically_increasing_id())
@@ -232,7 +225,7 @@ def main(input_submissions, input_comments, output):
     
     reddit_comments_spring_text = reddit_comments_spring.select('body').toPandas()
     
-    comments_spring_predictions = model_knn.predict(reddit_comments_spring_text['body'])
+    comments_spring_predictions = model_svc.predict(reddit_comments_spring_text['body'])
     comments_spring_predictions = pd.DataFrame(comments_spring_predictions, columns=['sentiment'])
     comments_spring_predictions = spark.createDataFrame(comments_spring_predictions)
     comments_spring_predictions = comments_spring_predictions.withColumn('id', functions.monotonically_increasing_id())
