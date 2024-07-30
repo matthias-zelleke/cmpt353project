@@ -1,9 +1,8 @@
 import sys
-assert sys.version_info >= (3, 10) # make sure we have Python 3.10+
+assert sys.version_info >= (3, 10)  # make sure we have Python 3.10+
 from pyspark.sql import SparkSession, functions, types
 import pandas as pd
-from datasets import load_dataset
-from scipy.stats import mannwhitneyu, chi2_contingency
+from scipy.stats import chi2_contingency
 
 comments_schema = types.StructType([
     types.StructField('archived', types.BooleanType()),
@@ -24,6 +23,7 @@ comments_schema = types.StructType([
     types.StructField('retrieved_on', types.LongType()),
     types.StructField('score', types.LongType()),
     types.StructField('score_hidden', types.BooleanType()),
+    types.StructField('sentiment', types.LongType()),
     types.StructField('subreddit', types.StringType()),
     types.StructField('subreddit_id', types.StringType()),
     types.StructField('ups', types.LongType()),
@@ -62,6 +62,7 @@ submissions_schema = types.StructType([
     types.StructField('score', types.LongType()),
     types.StructField('secure_media', types.StringType()),
     types.StructField('selftext', types.StringType()),
+    types.StructField('sentiment', types.LongType()),
     types.StructField('stickied', types.BooleanType()),
     types.StructField('subreddit', types.StringType()),
     types.StructField('subreddit_id', types.StringType()),
@@ -75,58 +76,107 @@ submissions_schema = types.StructType([
 
 def main(input_submissions, input_comments, output):
 
+    # Initialize SparkSession
+    spark = SparkSession.builder.appName('example code').getOrCreate()
+    spark.sparkContext.setLogLevel('WARN')
+
     # Read and filter data
     reddit_submissions_data = spark.read.json(input_submissions, schema=submissions_schema)
     reddit_comments_data = spark.read.json(input_comments, schema=comments_schema)
 
-    summer_months = [6, 7, 8, 9]
-    winter_months = [1, 2, 3, 4, 5, 10, 11, 12]
+    summer_months = [6, 7, 8]
+    fall_months = [9, 10, 11]
+    winter_months = [12, 1, 2]
+    spring_months = [3, 4, 5]
+    
 
-    summer_submissions = reddit_submissions_data.where(functions.col('month').isin(summer_months)).select('score').rdd.flatMap(lambda x: x).collect()
-    winter_submissions = reddit_submissions_data.where(functions.col('month').isin(winter_months)).select('score').rdd.flatMap(lambda x: x).collect()
+    # Chi-squared Test
 
-    summer_comments = reddit_comments_data.where(functions.col('month').isin(summer_months)).select('score').rdd.flatMap(lambda x: x).collect()
-    winter_comments = reddit_comments_data.where(functions.col('month').isin(winter_months)).select('score').rdd.flatMap(lambda x: x).collect()
+    summer_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(summer_months))
+    fall_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(fall_months))
+    winter_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(winter_months))
+    spring_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(spring_months))
 
-    # Print number of data points for debugging
-    print(f"Number of summer submissions: {len(summer_submissions)}")
-    print(f"Number of winter submissions: {len(winter_submissions)}")
-    print(f"Number of summer comments: {len(summer_comments)}")
-    print(f"Number of winter comments: {len(winter_comments)}")
+    summer_submissions_neg = summer_submissions_filter.where(functions.col('sentiment') == 0)
+    summer_submissions_pos = summer_submissions_filter.where(functions.col('sentiment') == 4)
+    
+    fall_submissions_neg = fall_submissions_filter.where(functions.col('sentiment') == 0)
+    fall_submissions_pos = fall_submissions_filter.where(functions.col('sentiment') == 4)
 
-    # Mann-Whitney U Test
-    stat_subs, p_value_subs = mannwhitneyu(summer_submissions, winter_submissions, alternative='less')
-    stat_comms, p_value_comms = mannwhitneyu(summer_comments, winter_comments, alternative='less')
+    winter_submissions_neg = winter_submissions_filter.where(functions.col('sentiment') == 0)
+    winter_submissions_pos = winter_submissions_filter.where(functions.col('sentiment') == 4)
 
-    print("Summer Submissions Scores:", summer_submissions[:10])  # Print first 10 scores for brevity
-    print("Winter Submissions Scores:", winter_submissions[:10])  # Print first 10 scores for brevity
-    print("Summer Comments Scores:", summer_comments[:10])  # Print first 10 scores for brevity
-    print("Winter Comments Scores:", winter_comments[:10])  # Print first 10 scores for brevity
+    spring_submissions_neg = spring_submissions_filter.where(functions.col('sentiment') == 0)
+    spring_submissions_pos = spring_submissions_filter.where(functions.col('sentiment') == 4)
+    
+    summer_sub_neg_counts = summer_submissions_neg.count()
+    summer_sub_pos_counts = summer_submissions_pos.count()
 
-    print(f'Mann-Whitney U test statistic subs: {stat_subs}')
-    print(f'P-value subs: {p_value_subs}')
-    print(f'Mann-Whitney U test statistic comments: {stat_comms}')
-    print(f'P-value comments: {p_value_comms}')
+    fall_sub_neg_counts = fall_submissions_neg.count()
+    fall_sub_pos_counts = fall_submissions_pos.count()
+    
+    winter_sub_neg_counts = winter_submissions_neg.count()
+    winter_sub_pos_counts = winter_submissions_pos.count()
 
-    results = {
-        'mannwhitneyu_statistic subs': stat_subs,
-        'mannwhitneyu_p_value subs': p_value_subs,
-        'mannwhitneyu_statistic comments': stat_comms,
-        'mannwhitneyu_p_value comments': p_value_comms
-    }
-
-    # Save results
-    # pd.DataFrame([results]).to_csv(f'{output}/mannwhitneyu_results.csv', index=False)
-
-input_submissions = sys.argv[1]
-input_comments = sys.argv[2]
-output = sys.argv[3]
-spark = SparkSession.builder.appName('example code').getOrCreate()
-#assert spark.version >= '3.5' # make sure we have Spark 3.5+
-spark.sparkContext.setLogLevel('WARN')
-#sc = spark.sparkContext
-
-main(input_submissions, input_comments, output)
+    spring_sub_neg_counts = spring_submissions_neg.count()
+    spring_sub_pos_counts = spring_submissions_pos.count()
+    
+    print(summer_sub_pos_counts, summer_sub_neg_counts, fall_sub_pos_counts, fall_sub_neg_counts, winter_sub_pos_counts, winter_sub_neg_counts, spring_sub_pos_counts, spring_sub_neg_counts)
+    contingency_submissions = [[summer_sub_pos_counts, summer_sub_neg_counts],
+                    [fall_sub_pos_counts, fall_sub_neg_counts],
+                   [winter_sub_pos_counts, winter_sub_neg_counts],
+                   [spring_sub_pos_counts, spring_sub_neg_counts] ]
+    
+    chi2_submissions = chi2_contingency(contingency_submissions)
+    
+    print(f'Chi-squared p-value submissions: ', chi2_submissions.pvalue)
+    
 
 
-#spark-submit reddit_stats.py reddit-subset-2021/submissions reddit-subset-2021/comments stats_output
+    summer_comments_filter = reddit_comments_data.where(functions.col('month').isin(summer_months))
+    fall_comments_filter = reddit_comments_data.where(functions.col('month').isin(fall_months))
+    winter_comments_filter = reddit_comments_data.where(functions.col('month').isin(winter_months))
+    spring_comments_filter = reddit_comments_data.where(functions.col('month').isin(spring_months))
+
+    summer_comments_neg = summer_comments_filter.where(functions.col('sentiment') == 0)
+    summer_comments_pos = summer_comments_filter.where(functions.col('sentiment') == 4)
+
+    fall_comments_neg = fall_comments_filter.where(functions.col('sentiment') == 0)
+    fall_comments_pos = fall_comments_filter.where(functions.col('sentiment') == 4)
+
+    winter_comments_neg = winter_comments_filter.where(functions.col('sentiment') == 0)
+    winter_comments_pos = winter_comments_filter.where(functions.col('sentiment') == 4)
+
+    spring_comments_neg = spring_comments_filter.where(functions.col('sentiment') == 0)
+    spring_comments_pos = spring_comments_filter.where(functions.col('sentiment') == 4)
+
+    summer_com_neg_counts = summer_comments_neg.count()
+    summer_com_pos_counts = summer_comments_pos.count()
+
+    fall_com_neg_counts = fall_comments_neg.count()
+    fall_com_pos_counts = fall_comments_pos.count()
+
+    winter_com_neg_counts = winter_comments_neg.count()
+    winter_com_pos_counts = winter_comments_pos.count()
+
+    spring_com_neg_counts = spring_comments_neg.count()
+    spring_com_pos_counts = spring_comments_pos.count()
+
+    print(summer_com_pos_counts, summer_com_neg_counts, winter_com_pos_counts, winter_com_neg_counts)
+    contingency_comments = [[summer_com_pos_counts, summer_com_neg_counts],
+                [fall_com_pos_counts, fall_com_neg_counts],
+               [winter_com_pos_counts, winter_com_neg_counts],
+               [spring_com_pos_counts, spring_com_neg_counts]]
+
+    chi2_comments = chi2_contingency(contingency_comments)
+    
+    print(f'Chi-squared p-value comments: ', chi2_comments.pvalue)
+
+    
+if __name__ == "__main__":
+    input_submissions = sys.argv[1]
+    input_comments = sys.argv[2]
+    output = sys.argv[3]
+    main(input_submissions, input_comments, output)
+
+#spark-submit reddit_stats.py output-2021-2023-submissions output-2021-2023-comments stats_outputs
