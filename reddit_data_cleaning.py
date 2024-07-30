@@ -20,21 +20,3 @@ submissions_schema = types.StructType([
     types.StructField('year', types.IntegerType()),
     types.StructField('month', types.IntegerType()),
 ])
-
-def main():
-    reddit_submissions = spark.read.json(reddit_submissions_path, schema=submissions_schema)
-    reddit_comments = spark.read.json(reddit_comments_path, schema=comments_schema)
-    
-    subs = ['vancouver']
-    
-    reddit_submissions.where(reddit_submissions['subreddit'].isin(subs)) \
-        .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
-        .sample(fraction=0.5) \
-        .write.json(output + '/submissions', mode='overwrite', compression='gzip')
-    reddit_comments.where(reddit_comments['subreddit'].isin(subs)) \
-        .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
-        .sample(fraction=0.5) \
-        .write.json(output + '/comments', mode='overwrite', compression='gzip')
-    
-
-main()

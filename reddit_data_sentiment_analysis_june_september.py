@@ -5,7 +5,7 @@ import pandas as pd
 from datasets import load_dataset
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import train_test_split
 
@@ -113,8 +113,8 @@ def main(input_submissions, input_comments, output):
     X_train, X_valid, y_train, y_valid = train_test_split(X, y)
     
     model_svc = make_pipeline(
-        TfidfVectorizer(),
-        SVC(C=0.1, kernel='linear')
+        TfidfVectorizer(max_df=0.25),
+        LinearSVC(penalty='l1', C=0.05, dual=False)
     )
     
     model_svc.fit(X_train, y_train)
