@@ -81,33 +81,12 @@ def main(input_submissions, input_comments, output):
     spark.sparkContext.setLogLevel('WARN')
 
     # Read and filter data
-    summer_submissions = spark.read.json(input_submissions + '-summer', schema=submissions_schema)
-    winter_submissions = spark.read.json(input_submissions + '-winter', schema=submissions_schema)
+    reddit_submissions_data = spark.read.json(input_submissions, schema=submissions_schema)
+    reddit_comments_data = spark.read.json(input_comments, schema=comments_schema)
 
-    summer_comments = spark.read.json(input_comments + '-summer', schema=comments_schema)
-    winter_comments = spark.read.json(input_comments + '-winter', schema=comments_schema)
-    
     summer_months = [6, 7, 8, 9]
     winter_months = [1, 2, 3, 4, 5, 10, 11, 12]
-
-    # Filter and collect scores for submissions
-    summer_submissions = reddit_submissions_data.where(functions.col('month').isin(summer_months)).select('score').rdd.flatMap(lambda x: x).collect()
-    winter_submissions = reddit_submissions_data.where(functions.col('month').isin(winter_months)).select('score').rdd.flatMap(lambda x: x).collect()
-
-    # Filter and collect scores for comments
-    summer_comments = reddit_comments_data.where(functions.col('month').isin(summer_months)).select('score').rdd.flatMap(lambda x: x).collect()
-    winter_comments = reddit_comments_data.where(functions.col('month').isin(winter_months)).select('score').rdd.flatMap(lambda x: x).collect()
-
-    # Mann-Whitney U Test for submissions
-    stat_subs, p_value_subs = mannwhitneyu(summer_submissions, winter_submissions, alternative='less')
-
-    # Mann-Whitney U Test for comments
-    stat_comms, p_value_comms = mannwhitneyu(summer_comments, winter_comments, alternative='less')
-
-    print(f'Mann-Whitney U test statistic subs: {stat_subs}')
-    print(f'P-value subs: {p_value_subs}')
-    print(f'Mann-Whitney U test statistic comments: {stat_comms}')
-    print(f'P-value comments: {p_value_comms}')
+    
 
     # Chi-squared Test
 
@@ -120,77 +99,44 @@ def main(input_submissions, input_comments, output):
     winter_submissions_neg = winter_submissions_filter.where(functions.col('sentiment') == 0)
     winter_submissions_pos = winter_submissions_filter.where(functions.col('sentiment') == 4)
     
-    summer_neg_counts = summer_submissions_neg.count()
-    summer_pos_counts = summer_submissions_pos.count()
+    summer_sub_neg_counts = summer_submissions_neg.count()
+    summer_sub_pos_counts = summer_submissions_pos.count()
     
-    winter_neg_counts = winter_submissions_neg.count()
-    winter_pos_counts = winter_submissions_pos.count()
+    winter_sub_neg_counts = winter_submissions_neg.count()
+    winter_sub_pos_counts = winter_submissions_pos.count()
     
-    print(summer_pos_counts, summer_neg_counts, winter_pos_counts, winter_neg_counts)
-    contingency = [[summer_pos_counts, summer_neg_counts],
-                   [winter_pos_counts, winter_neg_counts]]
+    print(summer_sub_pos_counts, summer_sub_neg_counts, winter_sub_pos_counts, winter_sub_neg_counts)
+    contingency_submissions = [[summer_sub_pos_counts, summer_sub_neg_counts],
+                   [winter_sub_pos_counts, winter_sub_neg_counts]]
     
-    #summer_counts = summer_submissions_filter.groupBy('subreddit').agg(functions.sum('num_comments').alias('count')).collect()
-    #winter_counts = winter_submissions_filter.groupBy('subreddit').agg(functions.sum('num_comments').alias('count')).collect()
-
-    #summer_dict = {row['subreddit']: row['count'] for row in summer_counts}
-    #winter_dict = {row['subreddit']: row['count'] for row in winter_counts}
-
-    #all_subreddits = set(summer_dict.keys()).union(set(winter_dict.keys()))
-
-    chi2 = chi2_contingency(contingency)
+    chi2_submissions = chi2_contingency(contingency_submissions)
     
-    print(f'P-value submissions: ', chi2.pvalue)
-
-    '''
-    summer_counts = summer_submissions_filter.groupBy('subreddit').agg(functions.count('comments').alias('count')).collect()
-    winter_counts = winter_submissions_filter.groupBy('subreddit').agg(functions.count('comments').alias('count')).collect()
-
-    # Convert to dictionaries for easy manipulation
-    summer_dict = {row['subreddit']: row['count'] for row in summer_counts}
-    winter_dict = {row['subreddit']: row['count'] for row in winter_counts}
-
-    # Get a set of all unique subreddits
-    all_subreddits = set(summer_dict.keys()).union(set(winter_dict.keys()))
-
-    # Construct the contingency table
-    contingency = [
-        [summer_dict.get(subreddit, 0) for subreddit in all_subreddits],
-        [winter_dict.get(subreddit, 0) for subreddit in all_subreddits]
-    ]
-
-    print("Contingency Table:")
-    for row in contingency:
-        print(row)
-    
-    chi2, p_value, dof, expected = chi2_contingency(contingency)
-    
-    print(f'Chi-squared test statistic: {chi2}')
-    print(f'P-value: {p_value}')
-    print(f'Degrees of freedom: {dof}')
-    print('Expected frequencies:')
-    for row in expected:
-        print(row)
-
-    '''
-
-    #contingency = [[],[]]
-    
-    #summer_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(summer_months))
-    #summer_submissions_comments_count = summer_submissions_filter.groupby('subreddit').agg(functions.count('comments')).rdd.flatMap(lambda x: x).collect()[0]
-    #contingency[0].append(summer_submissions_comments_count)
-
-    #winter_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(winter_months))
-    #winter_submissions_comments_count =  winter_submissions_filter.groupby('subreddit').agg(functions.count('comments')).rdd.flatMap(lambda x: x).collect()[0]
-    #contingency[1].append(winter_submissions_comments_count)
-    
-    #chi2_subs = chi2_contingency(contingency)
-    #print(contingency, chi2_subs)
+    print(f'Chi-squared p-value submissions: ', chi2_submissions.pvalue)
     
 
-    #print(f'Chi-squared test statistic subs: {chi2_subs}')
-    #print(f'P-value subs: ', chi2_subs.pvalue)
 
+    summer_comments_filter = reddit_comments_data.where(functions.col('month').isin(summer_months))
+    winter_comments_filter = reddit_comments_data.where(functions.col('month').isin(winter_months))
+
+    summer_comments_neg = summer_comments_filter.where(functions.col('sentiment') == 0)
+    summer_comments_pos = summer_comments_filter.where(functions.col('sentiment') == 4)
+
+    winter_comments_neg = winter_comments_filter.where(functions.col('sentiment') == 0)
+    winter_comments_pos = winter_comments_filter.where(functions.col('sentiment') == 4)
+
+    summer_com_neg_counts = summer_comments_neg.count()
+    summer_com_pos_counts = summer_comments_pos.count()
+
+    winter_com_neg_counts = winter_comments_neg.count()
+    winter_com_pos_counts = winter_comments_pos.count()
+
+    print(summer_com_pos_counts, summer_com_neg_counts, winter_com_pos_counts, winter_com_neg_counts)
+    contingency_comments = [[summer_com_pos_counts, summer_com_neg_counts],
+               [winter_com_pos_counts, winter_com_neg_counts]]
+
+    chi2_comments = chi2_contingency(contingency_comments)
+    
+    print(f'Chi-squared p-value comments: ', chi2_comments.pvalue)
 
     
 if __name__ == "__main__":
