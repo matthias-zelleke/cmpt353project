@@ -2,7 +2,10 @@ import sys
 assert sys.version_info >= (3, 10)  # make sure we have Python 3.10+
 from pyspark.sql import SparkSession, functions, types
 import pandas as pd
-from scipy.stats import mannwhitneyu, chi2_contingency
+from scipy.stats import chi2_contingency
+import matplotlib.pyplot as plt 
+import seaborn 
+
 
 comments_schema = types.StructType([
     types.StructField('archived', types.BooleanType()),
@@ -84,30 +87,74 @@ def main(input_submissions, input_comments, output):
     reddit_submissions_data = spark.read.json(input_submissions, schema=submissions_schema)
     reddit_comments_data = spark.read.json(input_comments, schema=comments_schema)
 
-    summer_months = [6, 7, 8, 9]
-    winter_months = [1, 2, 3, 4, 5, 10, 11, 12]
+    summer_months = [6, 7, 8]
+    fall_months = [9, 10, 11]
+    winter_months = [12, 1, 2]
+    spring_months = [3, 4, 5]
+
+    #plot
+
+    
+
+    submissions_neg = reddit_submissions_data.where(functions.col('sentiment') == 0)
+    submissions_pos = reddit_submissions_data.where(functions.col('sentiment') == 4)
+
+    monthly_submissions_neg = submissions_neg.groupby('month').agg(functions.count('num_comments').alias('total_subs_neg'))
+    monthly_submissions_pos = submissions_pos.groupby('month').agg(functions.count('num_comments').alias('total_subs_pos'))
+
+    join_monthly = monthly_submissions_neg.join(monthly_submissions_pos, on='month').toPandas()
+
+    seaborn.set()
+    plt.figure(figsize=(14, 6))
+
+    join_monthly = join_monthly.sort_values('month')
+
+    plt.bar(join_monthly['month'] - 0.2, join_monthly['total_subs_neg'], width=0.4, label='Submissions Neg', align='center')
+    plt.bar(join_monthly['month'] + 0.2, join_monthly['total_subs_pos'], width=0.4, label='Submissions Pos', align='center')
+
+    plt.xlabel('months')
+    plt.ylabel('comments')
+    plt.legend()
+    plt.show()
+
     
 
     # Chi-squared Test
 
     summer_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(summer_months))
+    fall_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(fall_months))
     winter_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(winter_months))
+    spring_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(spring_months))
 
     summer_submissions_neg = summer_submissions_filter.where(functions.col('sentiment') == 0)
     summer_submissions_pos = summer_submissions_filter.where(functions.col('sentiment') == 4)
     
+    fall_submissions_neg = fall_submissions_filter.where(functions.col('sentiment') == 0)
+    fall_submissions_pos = fall_submissions_filter.where(functions.col('sentiment') == 4)
+
     winter_submissions_neg = winter_submissions_filter.where(functions.col('sentiment') == 0)
     winter_submissions_pos = winter_submissions_filter.where(functions.col('sentiment') == 4)
+
+    spring_submissions_neg = spring_submissions_filter.where(functions.col('sentiment') == 0)
+    spring_submissions_pos = spring_submissions_filter.where(functions.col('sentiment') == 4)
     
     summer_sub_neg_counts = summer_submissions_neg.count()
     summer_sub_pos_counts = summer_submissions_pos.count()
+
+    fall_sub_neg_counts = fall_submissions_neg.count()
+    fall_sub_pos_counts = fall_submissions_pos.count()
     
     winter_sub_neg_counts = winter_submissions_neg.count()
     winter_sub_pos_counts = winter_submissions_pos.count()
+
+    spring_sub_neg_counts = spring_submissions_neg.count()
+    spring_sub_pos_counts = spring_submissions_pos.count()
     
-    print(summer_sub_pos_counts, summer_sub_neg_counts, winter_sub_pos_counts, winter_sub_neg_counts)
+    print(summer_sub_pos_counts, summer_sub_neg_counts, fall_sub_pos_counts, fall_sub_neg_counts, winter_sub_pos_counts, winter_sub_neg_counts, spring_sub_pos_counts, spring_sub_neg_counts)
     contingency_submissions = [[summer_sub_pos_counts, summer_sub_neg_counts],
-                   [winter_sub_pos_counts, winter_sub_neg_counts]]
+                    [fall_sub_pos_counts, fall_sub_neg_counts],
+                   [winter_sub_pos_counts, winter_sub_neg_counts],
+                   [spring_sub_pos_counts, spring_sub_neg_counts] ]
     
     chi2_submissions = chi2_contingency(contingency_submissions)
     
@@ -116,23 +163,39 @@ def main(input_submissions, input_comments, output):
 
 
     summer_comments_filter = reddit_comments_data.where(functions.col('month').isin(summer_months))
+    fall_comments_filter = reddit_comments_data.where(functions.col('month').isin(fall_months))
     winter_comments_filter = reddit_comments_data.where(functions.col('month').isin(winter_months))
+    spring_comments_filter = reddit_comments_data.where(functions.col('month').isin(spring_months))
 
     summer_comments_neg = summer_comments_filter.where(functions.col('sentiment') == 0)
     summer_comments_pos = summer_comments_filter.where(functions.col('sentiment') == 4)
 
+    fall_comments_neg = fall_comments_filter.where(functions.col('sentiment') == 0)
+    fall_comments_pos = fall_comments_filter.where(functions.col('sentiment') == 4)
+
     winter_comments_neg = winter_comments_filter.where(functions.col('sentiment') == 0)
     winter_comments_pos = winter_comments_filter.where(functions.col('sentiment') == 4)
+
+    spring_comments_neg = spring_comments_filter.where(functions.col('sentiment') == 0)
+    spring_comments_pos = spring_comments_filter.where(functions.col('sentiment') == 4)
 
     summer_com_neg_counts = summer_comments_neg.count()
     summer_com_pos_counts = summer_comments_pos.count()
 
+    fall_com_neg_counts = fall_comments_neg.count()
+    fall_com_pos_counts = fall_comments_pos.count()
+
     winter_com_neg_counts = winter_comments_neg.count()
     winter_com_pos_counts = winter_comments_pos.count()
 
+    spring_com_neg_counts = spring_comments_neg.count()
+    spring_com_pos_counts = spring_comments_pos.count()
+
     print(summer_com_pos_counts, summer_com_neg_counts, winter_com_pos_counts, winter_com_neg_counts)
     contingency_comments = [[summer_com_pos_counts, summer_com_neg_counts],
-               [winter_com_pos_counts, winter_com_neg_counts]]
+                [fall_com_pos_counts, fall_com_neg_counts],
+               [winter_com_pos_counts, winter_com_neg_counts],
+               [spring_com_pos_counts, spring_com_neg_counts]]
 
     chi2_comments = chi2_contingency(contingency_comments)
     
@@ -148,6 +211,5 @@ if __name__ == "__main__":
 
 
 
-
-
-#spark-submit reddit_stats_chi.py reddit-subset-2021/submissions reddit-subset-2021/comments stats_outputs
+#test run
+#spark-submit reddit_stats_chi.py output-2021-2023-submissions output-2021-2023-comments stats_outputs
