@@ -3,6 +3,8 @@ assert sys.version_info >= (3, 10)  # make sure we have Python 3.10+
 from pyspark.sql import SparkSession, functions, types
 import pandas as pd
 from scipy.stats import mannwhitneyu, chi2_contingency
+import matplotlib.pyplot as plt
+import seaborn
 
 comments_schema = types.StructType([
     types.StructField('archived', types.BooleanType()),
@@ -87,6 +89,29 @@ def main(input_submissions, input_comments, output):
     summer_months = [6, 7, 8, 9]
     winter_months = [1, 2, 3, 4, 5, 10, 11, 12]
     
+
+    # Plot of monthly submissions
+
+    submissions_neg = reddit_submissions_data.where(functions.col('sentiment') == 0)
+    submissions_pos = reddit_submissions_data.where(functions.col('sentiment') == 4)
+    
+    monthly_submissions_neg = submissions_neg.groupBy('month').agg(functions.count('*').alias('total_subs_neg'))
+    monthly_submissions_pos = submissions_pos.groupBy('month').agg(functions.count('*').alias('total_subs_pos'))
+
+    join_monthly = monthly_submissions_neg.join(monthly_submissions_pos, on='month').toPandas()
+
+    seaborn.set()
+    plt.figure(figsize=(14, 6))
+
+    join_monthly = join_monthly.sort_values('month')
+    
+    plt.bar(join_monthly['month'] - 0.2, join_monthly['total_subs_neg'], width=0.4, label='Submissions Neg', align='center')
+    plt.bar(join_monthly['month'] + 0.2, join_monthly['total_subs_pos'], width=0.4, label='Submissions Pos', align='center')
+
+    plt.xlabel('months')
+    plt.ylabel('submissions')
+    plt.legend()
+    plt.savefig('submissions_monthly_sentiment.png')
 
     # Chi-squared Test
 
