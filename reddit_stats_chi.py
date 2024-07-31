@@ -94,7 +94,6 @@ def main(input_submissions, input_comments, output):
 
     #plot
 
-    
 
     submissions_neg = reddit_submissions_data.where(functions.col('sentiment') == 0)
     submissions_pos = reddit_submissions_data.where(functions.col('sentiment') == 4)
@@ -115,7 +114,33 @@ def main(input_submissions, input_comments, output):
     plt.xlabel('months')
     plt.ylabel('comments')
     plt.legend()
-    plt.show()
+    #plt.show()
+    plt.savefig('submissions_comments')
+    
+
+    #comments plot
+    
+
+    comments_neg = reddit_comments_data.where(functions.col('sentiment') == 0)
+    comments_pos = reddit_comments_data.where(functions.col('sentiment') == 4)
+
+    monthly_comments_neg = comments_neg.groupby('month').agg(functions.count('*').alias('total_coms_neg'))
+    monthly_comments_pos = comments_pos.groupby('month').agg(functions.count('*').alias('total_coms_pos'))
+
+    join_monthly = monthly_comments_neg.join(monthly_comments_pos, on='month').toPandas()
+    plt.figure(figsize=(14, 6))
+
+    join_monthly = join_monthly.sort_values('month')
+    plt.bar(join_monthly['month'] - 0.2, join_monthly['total_coms_neg'], width=0.4, label='Comments Neg', align='center')
+    plt.bar(join_monthly['month'] + 0.2, join_monthly['total_coms_pos'], width=0.4, label='Comments Pos', align='center')
+
+    plt.xlabel('Months')
+    plt.ylabel('Count')
+    plt.legend()
+    plt.savefig('comments_plot')
+    #plt.show()
+
+    #end plt
 
     
 
