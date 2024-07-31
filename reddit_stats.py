@@ -3,6 +3,9 @@ assert sys.version_info >= (3, 10)  # make sure we have Python 3.10+
 from pyspark.sql import SparkSession, functions, types
 import pandas as pd
 from scipy.stats import chi2_contingency
+import matplotlib.pyplot as plt 
+import seaborn 
+
 
 comments_schema = types.StructType([
     types.StructField('archived', types.BooleanType()),
@@ -88,6 +91,57 @@ def main(input_submissions, input_comments, output):
     fall_months = [9, 10, 11]
     winter_months = [12, 1, 2]
     spring_months = [3, 4, 5]
+
+    #plot
+
+
+    submissions_neg = reddit_submissions_data.where(functions.col('sentiment') == 0)
+    submissions_pos = reddit_submissions_data.where(functions.col('sentiment') == 4)
+
+    monthly_submissions_neg = submissions_neg.groupby('month').agg(functions.count('num_comments').alias('total_subs_neg'))
+    monthly_submissions_pos = submissions_pos.groupby('month').agg(functions.count('num_comments').alias('total_subs_pos'))
+
+    join_monthly = monthly_submissions_neg.join(monthly_submissions_pos, on='month').toPandas()
+
+    seaborn.set()
+    plt.figure(figsize=(14, 6))
+
+    join_monthly = join_monthly.sort_values('month')
+
+    plt.bar(join_monthly['month'] - 0.2, join_monthly['total_subs_neg'], width=0.4, label='Submissions Neg', align='center')
+    plt.bar(join_monthly['month'] + 0.2, join_monthly['total_subs_pos'], width=0.4, label='Submissions Pos', align='center')
+
+    plt.xlabel('months')
+    plt.ylabel('comments')
+    plt.legend()
+    #plt.show()
+    plt.savefig('submissions_comments')
+    
+
+    #comments plot
+    
+
+    comments_neg = reddit_comments_data.where(functions.col('sentiment') == 0)
+    comments_pos = reddit_comments_data.where(functions.col('sentiment') == 4)
+
+    monthly_comments_neg = comments_neg.groupby('month').agg(functions.count('*').alias('total_coms_neg'))
+    monthly_comments_pos = comments_pos.groupby('month').agg(functions.count('*').alias('total_coms_pos'))
+
+    join_monthly = monthly_comments_neg.join(monthly_comments_pos, on='month').toPandas()
+    plt.figure(figsize=(14, 6))
+
+    join_monthly = join_monthly.sort_values('month')
+    plt.bar(join_monthly['month'] - 0.2, join_monthly['total_coms_neg'], width=0.4, label='Comments Neg', align='center')
+    plt.bar(join_monthly['month'] + 0.2, join_monthly['total_coms_pos'], width=0.4, label='Comments Pos', align='center')
+
+    plt.xlabel('Months')
+    plt.ylabel('Count')
+    plt.legend()
+    plt.savefig('comments_plot')
+    #plt.show()
+
+    #end plt
+
     
 
     # Chi-squared Test
