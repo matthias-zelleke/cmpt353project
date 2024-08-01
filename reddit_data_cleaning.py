@@ -39,6 +39,7 @@ def main(inputs):
     reddit_submissions_data = spark.read.json(inputs + '/submissions', schema=submissions_schema)
     reddit_comments_data = spark.read.json(inputs + '/comments', schema=comments_schema)
     
+    
     # Remove submissions/comments with no text
     
     remove_text = ['', '[deleted]', '[removed]']
