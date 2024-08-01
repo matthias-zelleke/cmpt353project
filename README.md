@@ -6,12 +6,12 @@ Our project's objective is to analyze the sentiments of Vancouver subreddit and 
 
 # Requirements to run our program
 
--Git
--Python version 3.10 or higher
+- Git
+- Python version 3.10 or higher
 **libraries**:
-    -sys
-    -os 
-    -Sparks version 3.5 or higher
+    - sys
+    - os 
+    - Sparks version 3.5 or higher
 
 To install library:
 ```
