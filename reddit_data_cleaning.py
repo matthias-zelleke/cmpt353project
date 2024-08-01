@@ -26,7 +26,7 @@ def main(inputs):
     reddit_submissions_data = spark.read.json(inputs + '/submissions', schema=submissions_schema)
     reddit_comments_data = spark.read.json(inputs + '/comments', schema=comments_schema)
     
-    remove_text = ['', '[deleted', '[removed]']
+    remove_text = ['', '[deleted]', '[removed]']
     
     reddit_submissions_data = reddit_submissions_data.where(~functions.col('selftext').isin(remove_text))
     reddit_comments_data = reddit_comments_data.where(~functions.col('body').isin(remove_text))
