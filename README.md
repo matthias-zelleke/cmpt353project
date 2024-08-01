@@ -13,7 +13,7 @@ Our project's objective is to analyze the sentiments of Vancouver subreddit and 
     - os 
     - Sparks version 3.5 or higher
 
-To install library:
+Other libraries that needs to be installed:
 ```
 pip install --user scipy pandas numpy scikit-learn seaborn matplotlib datasets contractions
 ```
