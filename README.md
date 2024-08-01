@@ -8,7 +8,7 @@ Our project's objective is to analyze the sentiments of Vancouver subreddit and 
 
 - Git
 - Python version 3.10 or higher
-**libraries**:
+- **libraries**:
     - sys
     - os 
     - Sparks version 3.5 or higher
