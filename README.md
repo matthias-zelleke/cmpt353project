@@ -56,20 +56,6 @@ Below is the order they should be run (along with the command to run each of the
         files produced: a stats-output-2021-2023 directory (containing the plots produced 
         
 
-To run the sentiment analysis file in our terminal:
-
-```
-spark-submit <sentiment-analysis.py> output-2021-2023-submissions output-2021-2023-comments output
-```
-
-replace ```<sentiment-analysis.py>``` with any of the sentiment_analysis python file you wish to run.
-
-To run the stats file:
-```
-spark-submit <reddit_stats.py> output-2021-2023-submissions output-2021-2023-comments stats-output-2021-2023
-```
-
-a stats-output-2021-2023 will appear in your directory with the plot images.
 
     
 
