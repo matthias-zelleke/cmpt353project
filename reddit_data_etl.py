@@ -15,6 +15,7 @@ comments_schema = types.StructType([
 ])
 
 submissions_schema = types.StructType([
+    types.StructField('num_comments', types.LongType()),
     types.StructField('selftext', types.StringType()),
     types.StructField('subreddit', types.StringType()),
     types.StructField('year', types.IntegerType()),
@@ -29,11 +30,11 @@ def main():
     
     reddit_submissions.where(reddit_submissions['subreddit'].isin(subs)) \
         .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
-        .sample(fraction=0.5) \
+        .sample(fraction=0.1) \
         .write.json(output + '/submissions', mode='overwrite', compression='gzip')
     reddit_comments.where(reddit_comments['subreddit'].isin(subs)) \
         .where((functions.col('year') >= 2021) & (functions.col('year') <= 2023)) \
-        .sample(fraction=0.5) \
+        .sample(fraction=0.1) \
         .write.json(output + '/comments', mode='overwrite', compression='gzip')
     
 

@@ -65,8 +65,8 @@ def main(inputs):
                                                                   'body')
     
     
-    reddit_submissions_data.write.json(inputs + '/submissions', mode='overwrite', compression='gzip')
-    reddit_comments_data.write.json(inputs + '/comments', mode='overwrite', compression='gzip')
+    reddit_submissions_data.write.json(inputs + '-submissions', mode='overwrite', compression='gzip')
+    reddit_comments_data.write.json(inputs + '-comments', mode='overwrite', compression='gzip')
     
     
 inputs = sys.argv[1]

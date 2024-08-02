@@ -3,7 +3,6 @@ assert sys.version_info >= (3, 10)  # make sure we have Python 3.10+
 from pyspark.sql import SparkSession, functions, types
 import os
 import numpy as np
-import pandas as pd
 from scipy.stats import chi2_contingency
 import matplotlib.pyplot as plt 
 import seaborn 
@@ -13,7 +12,6 @@ comments_schema = types.StructType([
     types.StructField('body', types.StringType()),
     types.StructField('sentiment', types.LongType()),
     types.StructField('subreddit', types.StringType()),
-    types.StructField('ups', types.LongType()),
     types.StructField('year', types.IntegerType()),
     types.StructField('month', types.IntegerType()),
 ])
@@ -143,7 +141,7 @@ def main(input_submissions, input_comments, output):
     
     chi2_submissions = chi2_contingency(contingency_submissions)
     
-    print(f'Chi-squared p-value submissions (4-seasons): ', chi2_submissions.pvalue)
+    print('Chi-squared p-value submissions (4-seasons): ', chi2_submissions.pvalue)
     
 
 
@@ -184,7 +182,7 @@ def main(input_submissions, input_comments, output):
 
     chi2_comments = chi2_contingency(contingency_comments)
     
-    print(f'Chi-squared p-value comments: (4-seasons)', chi2_comments.pvalue)
+    print('Chi-squared p-value comments: (4-seasons)', chi2_comments.pvalue)
     
     
     # Plot of actual vs. expected counts of positive submissions (4-seasons)
@@ -276,7 +274,7 @@ def main(input_submissions, input_comments, output):
     plt.close()
 
     
-    # Chi-squared Test (Summer vs. Non-summer)
+    # Chi-squared Test (Summer (June-September) vs. Non-summer)
     
     summer_months = [6, 7, 8, 9]
     winter_months = [1, 2, 3, 4, 5, 10, 11, 12]
@@ -303,7 +301,7 @@ def main(input_submissions, input_comments, output):
     ]
 
     chi2_submissions = chi2_contingency(contingency_submissions)
-    print(f'Chi-squared p-value submissions (2-seasons, June-September): ', chi2_submissions.pvalue)
+    print('Chi-squared p-value submissions (2-seasons, June-September): ', chi2_submissions.pvalue)
 
 
     summer_comments_filter = reddit_comments_data.where(functions.col('month').isin(summer_months))
@@ -328,7 +326,7 @@ def main(input_submissions, input_comments, output):
     ]
 
     chi2_comments = chi2_contingency(contingency_comments)
-    print(f'Chi-squared p-value comments (2-seasons, June-September): ', chi2_comments.pvalue)
+    print('Chi-squared p-value comments (2-seasons, June-September): ', chi2_comments.pvalue)
 
 
     # Plot of actual vs. expected counts of positive submissions (Summer vs. Non-summer)
@@ -413,6 +411,146 @@ def main(input_submissions, input_comments, output):
     
     plt.tight_layout()
     plt.savefig(output + '/actual_vs_expected_coms_2_seasons_june_september.png')
+    plt.close()
+    
+    
+    # Chi-squared Test (Summer (June-August) vs. Non-summer)
+    
+    summer_months = [6, 7, 8]
+    winter_months = [1, 2, 3, 4, 5, 9, 10, 11, 12]
+    
+    summer_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(summer_months))
+    winter_submissions_filter = reddit_submissions_data.where(functions.col('month').isin(winter_months))
+
+    summer_submissions_neg = summer_submissions_filter.where(functions.col('sentiment') == 0)
+    summer_submissions_pos = summer_submissions_filter.where(functions.col('sentiment') == 4)
+
+    winter_submissions_neg = winter_submissions_filter.where(functions.col('sentiment') == 0)
+    winter_submissions_pos = winter_submissions_filter.where(functions.col('sentiment') == 4)
+
+    summer_sub_neg_counts = summer_submissions_neg.count()
+    summer_sub_pos_counts = summer_submissions_pos.count()
+
+    winter_sub_neg_counts = winter_submissions_neg.count()
+    winter_sub_pos_counts = winter_submissions_pos.count()
+
+    print(summer_sub_pos_counts, summer_sub_neg_counts, winter_sub_pos_counts, winter_sub_neg_counts)
+    contingency_submissions = [
+        [summer_sub_pos_counts, summer_sub_neg_counts],
+        [winter_sub_pos_counts, winter_sub_neg_counts]
+    ]
+
+    chi2_submissions = chi2_contingency(contingency_submissions)
+    print('Chi-squared p-value submissions (2-seasons, June-August): ', chi2_submissions.pvalue)
+
+
+    summer_comments_filter = reddit_comments_data.where(functions.col('month').isin(summer_months))
+    winter_comments_filter = reddit_comments_data.where(functions.col('month').isin(winter_months))
+
+    summer_comments_neg = summer_comments_filter.where(functions.col('sentiment') == 0)
+    summer_comments_pos = summer_comments_filter.where(functions.col('sentiment') == 4)
+
+    winter_comments_neg = winter_comments_filter.where(functions.col('sentiment') == 0)
+    winter_comments_pos = winter_comments_filter.where(functions.col('sentiment') == 4)
+
+    summer_com_neg_counts = summer_comments_neg.count()
+    summer_com_pos_counts = summer_comments_pos.count()
+
+    winter_com_neg_counts = winter_comments_neg.count()
+    winter_com_pos_counts = winter_comments_pos.count()
+
+    print(summer_com_pos_counts, summer_com_neg_counts, winter_com_pos_counts, winter_com_neg_counts)
+    contingency_comments = [
+        [summer_com_pos_counts, summer_com_neg_counts],
+        [winter_com_pos_counts, winter_com_neg_counts]
+    ]
+
+    chi2_comments = chi2_contingency(contingency_comments)
+    print('Chi-squared p-value comments (2-seasons, June-August): ', chi2_comments.pvalue)
+    
+    
+    # Plot of actual vs. expected counts of positive submissions (Summer vs. Non-summer)
+    
+    season_names = ['Summer', 'Non-summer']
+    
+    plt.figure(figsize=(14, 12))
+    plt.subplot(2, 1, 1)
+    
+    temporary_x_ticks = np.array([0, 1])
+    
+    subs_pos_actual = [summer_sub_pos_counts, winter_sub_pos_counts]
+    
+    subs_pos_expected = chi2_submissions.expected_freq[:,0]
+    
+    plt.bar(temporary_x_ticks - 0.2, subs_pos_actual, width=0.4, label='Pos Submissions Actual Count', align='center')
+    plt.bar(temporary_x_ticks + 0.2, subs_pos_expected, width=0.4, label='Pos Submissions Expected Count', align='center')
+    
+    plt.xlabel('Season')
+    plt.ylabel('Positive Submissions Count')
+    plt.xticks(temporary_x_ticks, season_names)
+    plt.title('Actual vs. Expected Counts for Positive Submissions')
+    plt.legend()
+    
+    
+    # Plot of actual vs. expected counts of negative submissions (Summer vs. Non-summer)
+    
+    plt.subplot(2, 1, 2)
+    
+    subs_neg_actual = [summer_sub_neg_counts, winter_sub_neg_counts]
+    
+    subs_neg_expected = chi2_submissions.expected_freq[:,1]
+    
+    plt.bar(temporary_x_ticks - 0.2, subs_neg_actual, width=0.4, label='Neg Submissions Actual Count', align='center')
+    plt.bar(temporary_x_ticks + 0.2, subs_neg_expected, width=0.4, label='Neg Submissions Expected Count', align='center')
+    
+    plt.xlabel('Season')
+    plt.ylabel('Negative Submissions Count')
+    plt.xticks(temporary_x_ticks, season_names)
+    plt.title('Actual vs. Expected Counts for Negative Submissions')
+    plt.legend()
+    
+    plt.savefig(output + '/actual_vs_expected_subs_2_seasons_june_august.png')
+    plt.close()
+    
+    
+    # Plot of actual vs. expected counts of positive comments (Summer vs. Non-summer)
+
+    plt.figure(figsize=(14, 12))
+    plt.subplot(2, 1, 1)
+
+    coms_pos_actual = [summer_com_pos_counts, winter_com_pos_counts]
+
+    coms_pos_expected = chi2_comments.expected_freq[:,0]
+
+    plt.bar(temporary_x_ticks - 0.2, coms_pos_actual, width=0.4, label='Pos Comments Actual Count', align='center')
+    plt.bar(temporary_x_ticks + 0.2, coms_pos_expected, width=0.4, label='Pos Comments Expected Count', align='center')
+
+    plt.xlabel('Season')
+    plt.ylabel('Positive Comments Count')
+    plt.xticks(temporary_x_ticks, season_names)
+    plt.title('Actual vs. Expected Counts for Positive Comments')
+    plt.legend()
+
+
+    # Plot of actual vs. expected counts of negative comments (Summer vs. Non-summer)
+
+    plt.subplot(2, 1, 2)
+
+    coms_neg_actual = [summer_com_neg_counts, winter_com_neg_counts]
+
+    coms_neg_expected = chi2_comments.expected_freq[:,1]
+
+    plt.bar(temporary_x_ticks - 0.2, coms_neg_actual, width=0.4, label='Neg Comments Actual Count', align='center')
+    plt.bar(temporary_x_ticks + 0.2, coms_neg_expected, width=0.4, label='Neg Comments Expected Count', align='center')
+
+    plt.xlabel('Season')
+    plt.ylabel('Negative Comments Count')
+    plt.xticks(temporary_x_ticks, season_names)
+    plt.title('Actual vs. Expected Counts for Negative Comments')
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.savefig(output + '/actual_vs_expected_coms_2_seasons_june_august.png')
     plt.close()
     
     
