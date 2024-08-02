@@ -26,6 +26,7 @@ There are **3 python scripts** that need to be executed to run our entire progra
 Below is the order they should be run (along with the command to run each of them, and the files expected and produced by each):
         
    - reddit_data_cleaning.py (data cleaning script)
+ 
         command to run the script:
         
         ```
