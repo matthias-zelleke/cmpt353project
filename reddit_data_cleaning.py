@@ -16,6 +16,7 @@ comments_schema = types.StructType([
 ])
 
 submissions_schema = types.StructType([
+    types.StructField('num_comments', types.LongType()),
     types.StructField('selftext', types.StringType()),
     types.StructField('subreddit', types.StringType()),
     types.StructField('year', types.IntegerType()),
@@ -62,6 +63,7 @@ def main(inputs):
                                     
     reddit_comments_data = reddit_comments_data.withColumnRenamed('body_no_contraction',
                                                                   'body')
+    
     
     reddit_submissions_data.write.json(inputs + '/submissions', mode='overwrite', compression='gzip')
     reddit_comments_data.write.json(inputs + '/comments', mode='overwrite', compression='gzip')
