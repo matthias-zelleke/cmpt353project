@@ -22,6 +22,8 @@ pip install --user scipy pandas numpy scikit-learn seaborn matplotlib datasets c
 
 First we can clone this repository to our directory.
 
+Please cd into the cmpt353project directory that was just created after cloning before running the commands below.
+
 There are **3 python scripts** that need to be executed to run our entire program.
 Below is the order they should be run (along with the command to run each of them, and the files expected and produced by each):
         
