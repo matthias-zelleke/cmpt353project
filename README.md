@@ -35,7 +35,7 @@ Below is the order they should be run (along with the command to run each of the
         
         files expected: a reddit-subset-2021-2023 directory
         
-        files produced: a reddit-subset-2021-2023-submissions directory, and a reddit-subset-2021-2023 directory
+        files produced: a reddit-subset-2021-2023-submissions directory, and a reddit-subset-2021-2023-comments directory
         
         
    - reddit_data_sentiment_analysis.py (sentiment analysis script)
@@ -61,7 +61,7 @@ Below is the order they should be run (along with the command to run each of the
         
         files expected: an output-2021-2023-submissions directory and an output-2021-2023-comments directory (both contain sentiment analysis output)
         
-        files produced: a stats-output-2021-2023 directory (containing the plots produced 
+        files produced: a stats-output-2021-2023 directory (containing the plots produced) 
         
 
 
