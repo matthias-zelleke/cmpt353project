@@ -40,7 +40,7 @@ def main(input_submissions, input_comments, output):
     winter_months = [12, 1, 2]
     spring_months = [3, 4, 5]
 
-    #plot
+    #submissions plot
 
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -48,8 +48,8 @@ def main(input_submissions, input_comments, output):
     submissions_neg = reddit_submissions_data.where(functions.col('sentiment') == 0)
     submissions_pos = reddit_submissions_data.where(functions.col('sentiment') == 4)
 
-    monthly_submissions_neg = submissions_neg.groupby('month').agg(functions.count('num_comments').alias('total_subs_neg'))
-    monthly_submissions_pos = submissions_pos.groupby('month').agg(functions.count('num_comments').alias('total_subs_pos'))
+    monthly_submissions_neg = submissions_neg.groupby('month').agg(functions.count('*').alias('total_subs_neg'))
+    monthly_submissions_pos = submissions_pos.groupby('month').agg(functions.count('*').alias('total_subs_pos'))
 
     join_monthly = monthly_submissions_neg.join(monthly_submissions_pos, on='month').toPandas()
 
