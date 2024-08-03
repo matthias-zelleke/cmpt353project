@@ -1,4 +1,4 @@
-# Seasonly Sentiment Analysis on Vancouver Subreddit
+# Seasonal Sentiment Analysis on Vancouver Subreddit
 This repository contains the code and files used for our course project in CMPT 353 at Simon Fraser University.
 
 Our project's objective is to analyze the sentiments of Vancouver subreddit and its comments by applying statistical models and machine learning. We use statistical model, specifically the chi2_contingency from stats.scipy library to calculate the p-value in order to test our hypotheses.
